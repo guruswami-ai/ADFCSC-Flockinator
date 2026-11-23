@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flockinator Workshop Handbook</title>
+<meta name="description" content="Student handbook for the Flockinator ESP-NOW swarm-attack workshop: set up, flash, sniff, and forge an unauthenticated drone swarm.">
+<link rel="stylesheet" href="assets/handbook.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="dot"></span>Flockinator&nbsp;Handbook</a>
+  <nav>
+    <a href="index.html">Contents</a>
+    <a href="01-setup.html">Start<span class="lbl-full"> here</span> →</a>
+  </nav>
+</header>
+
+<main>
+  <p class="kicker">ESP-NOW Swarm Attack Workshop</p>
+  <h1>Student Handbook</h1>
+  <p class="lede">A wall of sixteen panels runs a simulated drone swarm that coordinates
+  over the air — in the clear, and unauthenticated. Over this workshop you will capture
+  its radio chatter, decode it, and forge it, to bend the swarm's missions. This handbook
+  takes you from an empty Kali laptop to landing a stealthy attack.</p>
+
+  <div class="diagram" aria-label="The workshop at a glance: your laptop and ESP8266 sit on the same channel as the panel swarm.">
+    <svg viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+      <!-- panel wall -->
+      <g>
+        <text x="40" y="24" text-anchor="start" font-size="14" font-weight="700" fill="#14171c">THE SWARM · 4 × 4 PANEL WALL</text>
+        <g>
+          <!-- 16 panels -->
+          <!-- row A -->
+          <g fill="#0d1117" stroke="#0e7490" stroke-width="1.5">
+          </g>
+        </g>
+        <!-- draw grid programmatically-ish by hand -->
+        <g>
+          <!-- generated grid -->
+          <g>
+            <rect x="40"  y="38"  width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="84"  y="38"  width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="128" y="38"  width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="172" y="38"  width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="40"  y="74"  width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="84"  y="74"  width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="128" y="74"  width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="172" y="74"  width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="40"  y="110" width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="84"  y="110" width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="128" y="110" width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="172" y="110" width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="40"  y="146" width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="84"  y="146" width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="128" y="146" width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+            <rect x="172" y="146" width="38" height="30" rx="3" fill="#0d1117" stroke="#0e7490"/>
+          </g>
+        </g>
+        <text x="125" y="196" text-anchor="middle" font-size="12" fill="#586172">16 nodes · labels A1–D4</text>
+      </g>
+
+      <!-- RF arcs -->
+      <g fill="none" stroke="#b45309" stroke-width="1.6" stroke-dasharray="4 4" opacity="0.9">
+        <path d="M225 95 q60 -18 120 0"/>
+        <path d="M225 118 q60 18 120 0"/>
+      </g>
+      <text x="300" y="150" text-anchor="middle" font-size="12" fill="#b45309">ESP-NOW · one channel · broadcast · in the clear</text>
+
+      <!-- attacker -->
+      <g>
+        <rect x="470" y="60" width="250" height="92" rx="8" fill="#f4f6f9" stroke="#c0c8d2"/>
+        <text x="595" y="84" text-anchor="middle" font-size="14" font-weight="700" fill="#14171c">YOU</text>
+        <rect x="492" y="96" width="92" height="40" rx="4" fill="#fff" stroke="#586172"/>
+        <text x="538" y="120" text-anchor="middle" font-size="11" fill="#14171c">Kali laptop</text>
+        <rect x="604" y="96" width="94" height="40" rx="4" fill="#0d1117" stroke="#0e7490"/>
+        <text x="651" y="114" text-anchor="middle" font-size="10" fill="#7fd1e0">ESP8266</text>
+        <text x="651" y="128" text-anchor="middle" font-size="10" fill="#f2d000">sniff + inject</text>
+      </g>
+      <text x="595" y="172" text-anchor="middle" font-size="12" fill="#586172">USB serial · 115200 baud · JSON per frame</text>
+    </svg>
+  </div>
+
+  <h2>How to use this handbook</h2>
+  <p>Work through the chapters in order the first time — each one builds on the last.
+  After that, treat it as a reference: the command table in
+  <a href="03-the-tool.html">chapter&nbsp;3</a> and the frame layouts in
+  <a href="04-espnow.html">chapter&nbsp;4</a> are the two pages you will keep coming back to.</p>
+
+  <ol class="toc">
+    <li><a href="01-setup.html"><span class="n">1</span><span><span class="tt">Set up your Kali laptop</span>
+      <span class="ds">Install esptool and a serial monitor, sort out drivers and permissions.</span></span></a></li>
+    <li><a href="02-flashing.html"><span class="n">2</span><span><span class="tt">Flash the board &amp; first boot</span>
+      <span class="ds">The USB power trap, flashing the firmware, and reading your first lines.</span></span></a></li>
+    <li><a href="03-the-tool.html"><span class="n">3</span><span><span class="tt">The tool and its screens</span>
+      <span class="ds">The serial contract, the full command set, and every OLED screen explained.</span></span></a></li>
+    <li><a href="04-espnow.html"><span class="n">4</span><span><span class="tt">ESP-NOW &amp; how the swarm talks</span>
+      <span class="ds">What ESP-NOW is, the three frame types, what they carry, and what breaks them.</span></span></a></li>
+    <li><a href="05-scanning.html"><span class="n">5</span><span><span class="tt">Find the swarm &amp; read its mind</span>
+      <span class="ds">Scan for the channel, lock on, and interpret the live picture.</span></span></a></li>
+    <li><a href="06-attacks.html"><span class="n">6</span><span><span class="tt">Attack scenarios</span>
+      <span class="ds">Replay, spoof, flood, manipulate — each mapped to impact and to detection.</span></span></a></li>
+  </ol>
+
+  <h2>Your kit</h2>
+  <div class="kit">
+    <div class="card"><h4>ESP8266 board</h4><p>An ESP-12E / NodeMCU-style board with a small OLED, flashed with the combined sniffer + injector.</p></div>
+    <div class="card"><h4>Kali Linux laptop</h4><p>Any recent Kali install. You will talk to the board over a USB serial port.</p></div>
+    <div class="card"><h4>A USB-C cable</h4><p>Plugged into a <b>USB-A</b> port on the laptop — this matters for power. See chapter&nbsp;2.</p></div>
+    <div class="card"><h4>The shared wall</h4><p>One 4&times;4 panel swarm on an isolated lab network, run by the facilitator.</p></div>
+  </div>
+
+  <h2>Rules of engagement</h2>
+  <div class="callout danger">
+    <p><span class="h">This is a sanctioned exercise against a simulated swarm on an isolated lab network.</span>
+    Everything here is for learning to <b>defend</b> unauthenticated IoT and mesh protocols.</p>
+    <p>Do not point these techniques at any radio, network, or device you do not own or are not
+    authorised to test. Outside this lab, capturing and injecting wireless traffic can be illegal.</p>
+  </div>
+  <p class="fine">The swarm's real command and control (missions, firmware, channel changes) is on a
+  separate, authenticated layer you cannot forge — so nothing you do here can brick the wall.
+  You are only ever corrupting the <em>picture</em> the swarm builds for itself. More on that in
+  chapters 4 and 6.</p>
+
+  <div class="pager">
+    <span></span>
+    <a class="next" href="01-setup.html"><span class="lbl">Next</span><span class="ttl">1 · Set up your Kali laptop →</span></a>
+  </div>
+</main>
+</body>
+</html>

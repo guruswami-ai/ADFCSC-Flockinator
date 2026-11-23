@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1 · Set up your Kali laptop — Flockinator Handbook</title>
+<meta name="description" content="Install esptool and a serial monitor on Kali Linux, sort out the CH340 driver and serial-port permissions.">
+<link rel="stylesheet" href="assets/handbook.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="dot"></span>Flockinator&nbsp;Handbook</a>
+  <nav><a href="index.html">Contents</a><a href="02-flashing.html">Next →</a></nav>
+</header>
+
+<main class="chapter">
+  <p class="kicker">Chapter 1</p>
+  <h1>Set up your Kali laptop</h1>
+  <p class="lede">You need two things on your laptop: a way to <em>flash</em> firmware onto the
+  board, and a <em>serial monitor</em> to talk to it once it is running. Both are a couple of
+  commands away on Kali.</p>
+
+  <div class="callout note">
+    <p>You will install <b>esptool</b> (writes firmware over USB) and <b>picocom</b> (a serial
+    terminal). PlatformIO is optional — only needed if you want to build the firmware from source
+    rather than flash the ready-made binary.</p>
+  </div>
+
+  <h2><span class="num">1.1</span> Update and install the tools</h2>
+  <p>Open a terminal and run:</p>
+  <pre><code><span class="c"># refresh the package index, then install Python tooling and a serial monitor</span>
+<span class="k">sudo</span> apt update
+<span class="k">sudo</span> apt install -y python3-pip pipx picocom
+
+<span class="c"># esptool flashes the board; pipx keeps it in its own isolated environment</span>
+<span class="k">pipx</span> install esptool
+
+<span class="c"># OPTIONAL — only if you want to compile the firmware yourself</span>
+<span class="k">pipx</span> install platformio</code></pre>
+  <p class="caption">If <code>pipx</code> prints a note about your <code>PATH</code>, run
+  <code>pipx ensurepath</code> and open a new terminal so <code>esptool</code> is found.</p>
+
+  <div class="callout key">
+    <p><span class="h">Why esptool and picocom?</span> The ESP8266 speaks a simple flashing
+    protocol over its USB serial chip — <code>esptool</code> is the standard client for it. Once
+    the firmware runs, the board just prints text and reads text over the same serial port, so any
+    serial terminal works; <code>picocom</code> is small and reliable. <code>minicom</code> or
+    <code>pio device monitor</code> are fine alternatives.</p>
+  </div>
+
+  <h2><span class="num">1.2</span> The USB-serial driver</h2>
+  <p>Almost all of these boards use a <b>CH340</b> USB-to-serial chip. Kali already ships the
+  matching <code>ch341</code> kernel driver, so there is usually nothing to install — when you
+  plug the board in, a device called <code>/dev/ttyUSB0</code> appears. You will confirm this in
+  the next chapter.</p>
+  <p>If your board instead uses a <b>CP2102</b> or <b>FTDI</b> chip, those drivers are built into
+  Kali too; the device may appear as <code>/dev/ttyUSB0</code> or <code>/dev/ttyACM0</code>.</p>
+
+  <h2><span class="num">1.3</span> Let yourself use the serial port</h2>
+  <p>By default only <code>root</code> may open serial ports. Add your user to the
+  <code>dialout</code> group once, so you do not need <code>sudo</code> every time:</p>
+  <pre><code><span class="k">sudo</span> usermod -aG dialout <span class="s">"$USER"</span></code></pre>
+  <div class="callout warn">
+    <p>Group changes only take effect after you <b>log out and back in</b> (or reboot). Until then
+    you will get <code>Permission denied</code> on the port — either re-login, or prefix commands
+    with <code>sudo</code> for now.</p>
+  </div>
+
+  <h2>Checkpoint</h2>
+  <p>You should now be able to run each of these without an error:</p>
+  <pre><code><span class="k">esptool</span> version          <span class="c"># prints a version number</span>
+<span class="k">picocom</span> --help          <span class="c"># prints usage</span></code></pre>
+  <p>If both work, your laptop is ready. Next you will connect and flash the board.</p>
+
+  <div class="pager">
+    <a class="prev" href="index.html"><span class="lbl">Prev</span><span class="ttl">← Contents</span></a>
+    <a class="next" href="02-flashing.html"><span class="lbl">Next</span><span class="ttl">2 · Flash the board &amp; first boot →</span></a>
+  </div>
+</main>
+</body>
+</html>

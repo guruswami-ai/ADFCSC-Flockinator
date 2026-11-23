@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6 · Attack scenarios — Flockinator Handbook</title>
+<meta name="description" content="Replay, spoofing, flooding, and MITM-style manipulation against the swarm — each mapped to mission impact and to how it is detected — plus scripting and the stealth game.">
+<link rel="stylesheet" href="assets/handbook.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="dot"></span>Flockinator&nbsp;Handbook</a>
+  <nav><a href="index.html">Contents</a><a href="index.html">Finish ✓</a></nav>
+</header>
+
+<main class="chapter">
+  <p class="kicker">Chapter 6</p>
+  <h1>Attack scenarios</h1>
+  <p class="lede">Now you bend the swarm. Your objective is to <b>degrade its missions</b> — divert
+  it, crash drones, stall its decisions — and the real challenge is to do it <b>without being
+  caught</b>. The commander is listening.</p>
+
+  <div class="callout danger">
+    <p><span class="h">The commander is watching.</span> "Doom Guy" monitors the real traffic and
+    calls out — aloud and on his face — the moment he spots something wrong: telemetry that
+    teleports, confidence that flip-flops, a flood of frames, two nodes both claiming LEAD, or a
+    drone doing something nobody ordered. Loud attacks work, but they get you flagged instantly.</p>
+  </div>
+
+  <h2><span class="num">6.1</span> Replay</h2>
+  <p>The simplest attack: capture a real frame and send it back, out of its original context. There
+  is no replay protection, so the swarm accepts it as fresh.</p>
+  <pre><code><span class="k">RAW</span> 1                 <span class="c"># capture one frame's hex in SNIFF</span>
+<span class="k">SEND</span> 314b4c46…        <span class="c"># retransmit those exact bytes (auto-switches to INJECT)</span></code></pre>
+  <p><b>Try:</b> replay an old <code>CONTACT</code> after the real target is gone — does the swarm
+  keep chasing a ghost?</p>
+  <p class="caption"><b>Impact:</b> resurrect stale targets, repeat a claim. <b>Detection:</b> the
+  replayed frame's sequence counter is older than what's been seen — a defender tracking
+  <code>seq</code> per sender can spot the rewind.</p>
+
+  <h2><span class="num">6.2</span> Spoofing — forge data that was never there</h2>
+  <p>This is where the <code>CONTACT</code> and <code>CLAIM</code> commands earn their keep. Read a
+  drone's position from its <code>TELEM</code> first, then place your forgery precisely.</p>
+
+  <h3>Misdirect the swarm</h3>
+  <pre><code><span class="k">CONTACT</span> 0 300 120 2 200 1     <span class="c"># fake RED target, confidence 200, active</span></code></pre>
+  <p>Nodes that take it on will <b>steer toward it</b>. Put it somewhere useless and you've pulled
+  attackers off the real mission to a decoy.</p>
+
+  <h3>Crash a drone</h3>
+  <pre><code><span class="k">CONTACT</span> 0 34 -12 2 255 17     <span class="c"># flags 17 = active(1) + hazard(16)</span></code></pre>
+  <p>A <span class="chip hz">hazard</span> contact placed on top of a drone <b>strikes it out of the
+  sky</b>. Read the node's <code>TELEM</code> <code>x,y</code> first, then drop the hazard there.</p>
+  <div class="callout warn"><p><span class="h">Flag arithmetic.</span> <code>flags</code> is just the
+  bits added up: active <code>1</code> + hazard <code>16</code> = <code>17</code>. Add high-value
+  <code>2</code> or committed <code>8</code> to taste. See <a href="04-espnow.html">chapter&nbsp;4</a>.</p></div>
+
+  <h3>Role confusion</h3>
+  <pre><code><span class="k">CLAIM</span> C3 0 1 5          <span class="c"># forge C3 claiming LEAD (role 1) on contact 0 at dist 5</span></code></pre>
+  <p>Forge <code>CLAIM</code>s so several nodes think they're LEAD, or make the real LEAD
+  <code>YIELD</code> (role 3). Watch the swarm argue with itself and stall.</p>
+
+  <h3>Hijack priority</h3>
+  <pre><code><span class="k">CONTACT</span> 1 -200 0 2 255 3    <span class="c"># flags 3 = active(1) + high-value(2)</span></code></pre>
+  <p>A <b>high-value</b> (<code>+2</code>) or <b>committed</b> (<code>+8</code>) contact outranks
+  everything — the whole swarm pivots to your invented target.</p>
+
+  <h2><span class="num">6.3</span> Flooding</h2>
+  <p>Inject fast and often — many contacts, rapid re-sends, contradictory claims — until the swarm's
+  picture can't settle. Effective, but the loudest thing you can do. You'll want a script for this
+  (below), and you <em>will</em> be flagged.</p>
+
+  <h2><span class="num">6.4</span> MITM-style manipulation</h2>
+  <p>True man-in-the-middle is impossible on a broadcast medium — you can't silently sit between two
+  nodes. But you can get the same effect: <b>observe a real frame, then immediately transmit a
+  louder, altered copy</b> so your version wins.</p>
+  <ul>
+    <li><b>Flip a class:</b> RED→CIV to call off an attack, or CIV→RED to start one.</li>
+    <li><b>Walk a target:</b> nudge a contact's <code>x,y</code> a few units each frame so a drone
+      chases it off course — slow enough to look like real movement.</li>
+  </ul>
+  <p>Use <code>POWER</code> to make your copy a touch louder than the original, and <code>MAC
+  VARY</code> so it doesn't obviously all come from one radio.</p>
+
+  <h2><span class="num">6.5</span> Scripting the attacks</h2>
+  <p>Typing works for one-off forgeries, but replay timing, walking a target, and flooding all need
+  a script. The serial contract from <a href="03-the-tool.html">chapter&nbsp;3</a> makes this easy:
+  send a command line, read JSON lines back. A dependency-light <code>pyserial</code> skeleton:</p>
+  <pre><code><span class="c"># pip install pyserial  —  read the swarm, then send one forged contact</span>
+<span class="k">import</span> serial, json, time
+s = serial.Serial(<span class="s">"/dev/ttyUSB0"</span>, 115200, timeout=1)
+
+<span class="c"># 1) read the live picture</span>
+<span class="k">for</span> _ <span class="k">in</span> range(50):
+    line = s.readline().decode(errors=<span class="s">"ignore"</span>).strip()
+    <span class="k">if</span> <span class="k">not</span> line: <span class="k">continue</span>
+    <span class="k">try</span>: f = json.loads(line)
+    <span class="k">except</span> ValueError: <span class="k">continue</span>
+    <span class="k">if</span> f.get(<span class="s">"kind"</span>) == <span class="s">"TELEM"</span> <span class="k">and</span> f.get(<span class="s">"label"</span>) == <span class="s">"A1"</span>:
+        x, y = f[<span class="s">"x"</span>], f[<span class="s">"y"</span>]           <span class="c"># found A1's position</span>
+        <span class="k">break</span>
+
+<span class="c"># 2) drop a hazard contact right on it  (commands are newline-terminated)</span>
+s.write(f<span class="s">"CONTACT 0 {x} {y} 2 255 17\n"</span>.encode())</code></pre>
+  <div class="callout note"><p>A timed <b>replay</b> is the same shape: capture a hex frame, then
+  <code>s.write(b"SEND &lt;hex&gt;\n")</code> on a schedule. A <b>flood</b> is a tight loop of writes.
+  A <b>walk</b> re-sends <code>CONTACT</code> with <code>x,y</code> nudged each tick.</p></div>
+  <div class="callout warn"><p><span class="h">Build it read-only first.</span> Have your script
+  <em>print</em> the command it would send before you let it transmit — forging on the shared air
+  affects everyone's exercise, and an accidental flood is an instant detection.</p></div>
+
+  <h2><span class="num">6.6</span> The detection game</h2>
+  <p>Anything here will degrade the swarm. The skill is doing it <b>quietly</b>. Every attack leaves
+  a signature a defender — and Doom Guy — can catch:</p>
+  <table>
+    <thead><tr><th>Attack</th><th>What gives it away</th><th>How to stay quiet</th></tr></thead>
+    <tbody>
+      <tr><td>Replay</td><td>sequence counter jumps backwards</td><td>replay soon, once, in a plausible context</td></tr>
+      <tr><td>Spoofed contact</td><td>appears from nowhere at full confidence</td><td>ramp confidence; place it where a target could plausibly be</td></tr>
+      <tr><td>Crash (hazard)</td><td>a drone falls with no legitimate cause</td><td>hard to hide — spend it when it counts</td></tr>
+      <tr><td>Role confusion</td><td>two LEADs on one contact; impossible bids</td><td>flip one role, not many; match realistic <code>dist</code></td></tr>
+      <tr><td>Flood</td><td>frame rate spikes far above normal</td><td>don't — or keep the rate near the swarm's own</td></tr>
+      <tr><td>Walk / MITM</td><td>target teleports; class flip-flops</td><td>move a few units per frame; change class once</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout key">
+    <p><span class="h">The gold standard.</span> A single, plausible, well-timed forged frame that
+    quietly sends one drone to the wrong place — and no alert. Minimal, realistic, patient beats
+    brute force every time.</p>
+  </div>
+  <p>Think like the defender you are learning to be: every attack you land is a detection signature
+  someone could have caught. The fixes are the lesson — authentication, anti-replay nonces,
+  rate-limiting, plausibility and physics checks, and anomaly detection. That is exactly what Doom
+  Guy is doing, and exactly what a real unauthenticated swarm is missing.</p>
+
+  <div class="pager">
+    <a class="prev" href="05-scanning.html"><span class="lbl">Prev</span><span class="ttl">← 5 · Find the swarm &amp; read its mind</span></a>
+    <a class="next" href="index.html"><span class="lbl">Done</span><span class="ttl">Back to contents ✓</span></a>
+  </div>
+</main>
+</body>
+</html>

@@ -9,6 +9,15 @@ unauthenticated**. Your job: capture it, understand it, and forge it to
 
 This repo is everything you need to join in from a laptop and an ESP8266.
 
+## Start here: the student handbook
+
+The full illustrated guide lives in **[`docs/handbook/`](docs/handbook/index.html)** — open
+`docs/handbook/index.html` in a browser, or read/print the single-file
+**[`docs/handbook/flockinator-handbook.pdf`](docs/handbook/flockinator-handbook.pdf)** offline.
+It takes you from an empty Kali laptop through flashing, the tool and its OLED screens, how the
+swarm communicates over ESP-NOW, and the attack scenarios — with diagrams and accurate screen
+renders. The Markdown files under `docs/` are quick text references for the same material.
+
 ## The lesson in one sentence
 
 The same radio chatter that lets a swarm coordinate is exactly what lets an
@@ -38,10 +47,12 @@ extract → inject → degrade the missions.
 
 | Path | What |
 |---|---|
+| [`docs/handbook/`](docs/handbook/index.html) | **The illustrated student handbook (HTML) — start here** |
+| [`docs/handbook/flockinator-handbook.pdf`](docs/handbook/flockinator-handbook.pdf) | The whole handbook as one offline / printable PDF |
 | [`firmware/`](firmware/) | The combined sniffer+injector (PlatformIO source + prebuilt `.bin`) |
-| [`docs/flashing.md`](docs/flashing.md) | Install the tools on Kali, wire up the board, flash it |
-| [`docs/protocol.md`](docs/protocol.md) | The swarm's wire frames — the forgeable surface |
-| [`docs/exercises.md`](docs/exercises.md) | The attacks: replay, spoof, flood, manipulate |
+| [`docs/flashing.md`](docs/flashing.md) | Quick reference: install the tools on Kali, wire up the board, flash it |
+| [`docs/protocol.md`](docs/protocol.md) | Quick reference: the swarm's wire frames — the forgeable surface |
+| [`docs/exercises.md`](docs/exercises.md) | Quick reference: the attacks — replay, spoof, flood, manipulate |
 | [`docs/instructor.md`](docs/instructor.md) | Session outline for facilitators |
 
 ## Rules of engagement

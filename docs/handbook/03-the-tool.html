@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3 · The tool and its screens — Flockinator Handbook</title>
+<meta name="description" content="The sniffer+injector serial interface: the line contract, SNIFF vs INJECT modes, the full command reference, and every OLED screen.">
+<link rel="stylesheet" href="assets/handbook.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="dot"></span>Flockinator&nbsp;Handbook</a>
+  <nav><a href="index.html">Contents</a><a href="04-espnow.html">Next →</a></nav>
+</header>
+
+<main class="chapter">
+  <p class="kicker">Chapter 3</p>
+  <h1>The tool and its screens</h1>
+  <p class="lede">Your board runs one program — a combined <b>sniffer and injector</b>. You drive it
+  entirely over the serial port: you send short text commands, and it streams back one JSON object
+  per line. This chapter is the reference you will keep open.</p>
+
+  <h2><span class="num">3.1</span> The serial contract</h2>
+  <p>The interface is deliberately simple, which is what makes it easy to script later.</p>
+  <div class="diagram" aria-label="You send newline-terminated text commands to the board; it streams back one JSON object per line.">
+    <svg viewBox="0 0 720 150" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+      <rect x="20" y="40" width="150" height="70" rx="8" fill="#f4f6f9" stroke="#c0c8d2"/>
+      <text x="95" y="68" text-anchor="middle" font-size="13" font-weight="700" fill="#14171c">Your laptop</text>
+      <text x="95" y="88" text-anchor="middle" font-size="11" fill="#586172">picocom / Python</text>
+      <rect x="550" y="40" width="150" height="70" rx="8" fill="#0d1117" stroke="#0e7490"/>
+      <text x="625" y="68" text-anchor="middle" font-size="13" font-weight="700" fill="#7fd1e0">ESP8266</text>
+      <text x="625" y="88" text-anchor="middle" font-size="11" fill="#f2d000">sniffer + injector</text>
+      <!-- to board -->
+      <line x1="170" y1="62" x2="548" y2="62" stroke="#0e7490" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="360" y="54" text-anchor="middle" font-size="12" fill="#0e7490" font-family="monospace">FIND\n   ·   CONTACT 0 40 10 2 255 17\n</text>
+      <text x="360" y="77" text-anchor="middle" font-size="10.5" fill="#586172">commands — plain text, newline-terminated</text>
+      <!-- from board -->
+      <line x1="548" y1="92" x2="172" y2="92" stroke="#b45309" stroke-width="2" marker-end="url(#ar2)"/>
+      <text x="360" y="110" text-anchor="middle" font-size="12" fill="#b45309" font-family="monospace">{"kind":"CONTACT","id":0,…}\n</text>
+      <text x="360" y="128" text-anchor="middle" font-size="10.5" fill="#586172">responses &amp; captured frames — one JSON object per line</text>
+      <defs>
+        <marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#0e7490"/></marker>
+        <marker id="ar2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#b45309"/></marker>
+      </defs>
+    </svg>
+  </div>
+  <ul>
+    <li><b>To the board:</b> a command as text, ending in a newline. Matching is exact and
+      case-sensitive (<code>FIND</code>, not <code>find</code>), with no trailing spaces.</li>
+    <li><b>From the board:</b> every captured frame <em>and</em> every command acknowledgement is a
+      single JSON object on its own line. To read it from code you just read a line and parse it.</li>
+  </ul>
+  <div class="callout note"><p>That one-line-in / one-JSON-line-out shape is all you need to drive
+  the board from a script — you will use it for timed replays and floods in
+  <a href="06-attacks.html">chapter&nbsp;6</a>.</p></div>
+
+  <h2><span class="num">3.2</span> Two modes, one radio</h2>
+  <p>A single radio cannot listen and transmit at the same time, so the tool has two modes:</p>
+  <ul>
+    <li><b>SNIFF</b> — the default. It listens on one channel and streams every frame it hears.</li>
+    <li><b>INJECT</b> — it transmits the frames you forge. Any injection command switches it into
+      INJECT automatically; type <code>SNIFF</code> to go back to listening.</li>
+  </ul>
+
+  <h2><span class="num">3.3</span> Command reference</h2>
+  <p>Type <code>HELP</code> on the board to print this list at any time.</p>
+
+  <h3>Capture &amp; tuning</h3>
+  <table class="t-cmd">
+    <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>FIND &lt;ms&gt;</code></td><td>Scan every channel, then lock onto the one carrying the swarm. Optional dwell per channel in ms (default 1500).</td></tr>
+      <tr><td><code>SCAN &lt;ms&gt;</code></td><td>Scan and report, but stay on your current channel (don't retune).</td></tr>
+      <tr><td><code>CH &lt;1-13&gt;</code></td><td>Tune to a channel manually.</td></tr>
+      <tr><td><code>SNIFF</code> / <code>INJECT</code></td><td>Switch mode.</td></tr>
+      <tr><td><code>VERBOSE</code> / <code>QUIET</code></td><td>Turn the per-frame JSON stream on or off.</td></tr>
+      <tr><td><code>RAW &lt;n&gt;</code></td><td>Dump the next <code>n</code> frames as raw hex — this is how you grab bytes to replay with <code>SEND</code>.</td></tr>
+      <tr><td><code>STATS</code></td><td>Counters: frames seen and injected, broken down by kind.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Injection — forging the swarm's picture</h3>
+  <table class="t-cmd">
+    <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>CONTACT &lt;id&gt; &lt;x&gt; &lt;y&gt; &lt;cls&gt; &lt;conf&gt; &lt;flags&gt;</code></td><td>Forge a target contact (frame kind 4). Keeps re-sending until stopped.</td></tr>
+      <tr><td><code>CONTACT &lt;id&gt; OFF</code></td><td>Stop re-sending that forged contact (<code>CONTACT OFF</code> stops all).</td></tr>
+      <tr><td><code>CLAIM &lt;label&gt; &lt;contact&gt; &lt;role&gt; &lt;dist&gt;</code></td><td>Forge a role claim (frame kind 5) as if from node <code>&lt;label&gt;</code>.</td></tr>
+      <tr><td><code>CLAIM &lt;label&gt; OFF</code></td><td>Stop that forged claim (<code>CLAIM OFF</code> stops all).</td></tr>
+      <tr><td><code>SEND &lt;hex&gt;</code></td><td>Transmit one raw frame from hex bytes — your replay primitive.</td></tr>
+    </tbody>
+  </table>
+  <p class="caption"><code>cls</code>: 0 UNKNOWN · 1 BLU · 2 RED · 3 CIV.
+    <code>role</code>: 1 LEAD · 2 SUPPORT · 3 YIELD.
+    <code>flags</code> is a number — add the bits:
+    <span class="chip">1 active</span> <span class="chip">2 high-value</span>
+    <span class="chip">8 committed</span> <span class="chip hz">16 hazard</span>.
+    Full meanings in <a href="04-espnow.html">chapter&nbsp;4</a>.</p>
+
+  <h3>Stealth tooling</h3>
+  <p>These change <em>how</em> your frames look on the air — useful when you are trying to degrade
+  the swarm without being flagged (see <a href="06-attacks.html">chapter&nbsp;6</a>).</p>
+  <table class="t-cmd">
+    <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>MAC VARY</code> / <code>MAC OWN</code></td><td>Vary the source MAC address of forged frames, or use your own fixed one. Varying makes your traffic blend in rather than all coming from one radio.</td></tr>
+      <tr><td><code>POWER &lt;0-20&gt;</code> / <code>POWER VARY</code></td><td>Set transmit power (dBm), or vary it. A frame that is suspiciously loud stands out.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Display &amp; housekeeping</h3>
+  <table class="t-cmd">
+    <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>PAGE &lt;0|1|2|AUTO&gt;</code></td><td>Choose the OLED page: 0 sniff, 1 signal grid, 2 inject — or AUTO.</td></tr>
+      <tr><td><code>DEMO &lt;ON|OFF&gt;</code></td><td>Play a built-in demo stream (for testing the tool away from the wall).</td></tr>
+      <tr><td><code>RESET</code></td><td>Reboot the board.</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="num">3.4</span> Reading the OLED</h2>
+  <p>Every value on the OLED is also in the serial JSON, but the screen is a fast glance. The top
+  (yellow) line is always a header; the four blue lines below are the body.</p>
+
+  <h3>Sniff page (<code>PAGE 0</code>)</h3>
+  <div class="screen-row">
+    <figure>
+      <div class="screen"><img src="assets/screens/sniff-live.svg" alt="OLED: FLOCK SNIFF CH03, SEEN 12 AVG -58, A1 POS34 -12, SIG GOOD, frame counts"></div>
+      <figcaption><b>Live telemetry.</b> Header: mode + channel. Then nodes heard &amp; average
+      signal, the last decoded event (here node <b>A1</b> reporting its position), signal strength,
+      and running <b>F1</b>/<b>F2</b> frame counts.</figcaption>
+    </figure>
+    <figure>
+      <div class="screen"><img src="assets/screens/sniff-contact.svg" alt="OLED: sniff page showing CT0 RED C200 as the last event"></div>
+      <figcaption><b>A contact appears.</b> The event line now shows <b>CT0 RED C200</b> — contact
+      slot 0, class RED, confidence 200. This is the swarm believing in a target.</figcaption>
+    </figure>
+  </div>
+  <p class="caption">The device font has only capitals and digits, so a comma prints as a blank —
+  <code>POS34,-12</code> shows as <code>POS34 -12</code>. That is the real hardware, not a mistake.</p>
+
+  <h3>Signal grid (<code>PAGE 1</code>)</h3>
+  <figure>
+    <div class="screen"><img src="assets/screens/rssi-matrix.svg" alt="OLED: a 4x4 grid of per-node signal strength, columns 1-4, rows A-D"></div>
+    <figcaption><b>Per-node signal.</b> The 4&times;4 grid mirrors the wall: columns 1–4, rows A–D.
+    Each cell is that node's signal in &minus;dBm (smaller number = stronger). <code>--</code> means
+    not heard. Handy for working out which panel is which.</figcaption>
+  </figure>
+
+  <h3>Inject page (<code>PAGE 2</code>)</h3>
+  <figure>
+    <div class="screen"><img src="assets/screens/inject.svg" alt="OLED: FLOCK INJECT CH03, FORGING 02 FRAMES, CT0 RED C255, SENT and FAIL counters"></div>
+    <figcaption><b>Forging.</b> Header turns to <b>INJECT</b>. <b>FORGING 02 FRAMES</b> = two forged
+    frames are being re-sent on a loop, with <b>SENT</b> / <b>FAIL</b> counters below.</figcaption>
+  </figure>
+
+  <div class="callout key"><p><span class="h">The scan page</span> appears while <code>FIND</code>
+  or <code>SCAN</code> is running — it is covered in <a href="05-scanning.html">chapter&nbsp;5</a>,
+  where you actually locate the swarm.</p></div>
+
+  <div class="pager">
+    <a class="prev" href="02-flashing.html"><span class="lbl">Prev</span><span class="ttl">← 2 · Flash the board &amp; first boot</span></a>
+    <a class="next" href="04-espnow.html"><span class="lbl">Next</span><span class="ttl">4 · ESP-NOW &amp; how the swarm talks →</span></a>
+  </div>
+</main>
+</body>
+</html>

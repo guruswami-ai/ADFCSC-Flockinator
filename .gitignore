@@ -3,3 +3,9 @@
 *.elf
 ._*
 .DS_Store
+
+# handbook build tooling + local render artifacts (not shipped)
+docs/handbook/.build/
+pdfpg-*.png
+__pycache__/
+*.pyc

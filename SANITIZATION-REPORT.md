@@ -14,7 +14,8 @@ project. Before it is published, it was checked for internal/sensitive data.
 Wi-Fi SSID/password; `10.61.106.x` and any internal IPs; device MAC addresses;
 hostnames of internal machines; `op://` / 1Password, Kathaka, OPNsense; the
 HMAC `/v1` maintenance interface and per-node keys; DHCP/reservation details.
-A recursive grep for these terms returns empty (see commit).
+A recursive grep for these terms returns empty (see commit). The `docs/handbook/`
+HTML, SVG screen renders, and compiled PDF were added afterwards and re-scanned clean.
 
 ## What's intentionally included (it's the exercise)
 - The **FLK1** unauthenticated frame formats students sniff and forge.

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5 · Find the swarm &amp; read its mind — Flockinator Handbook</title>
+<meta name="description" content="Scan for the swarm's channel with FIND, read the bar chart and JSON, and interpret the live swarm picture.">
+<link rel="stylesheet" href="assets/handbook.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="dot"></span>Flockinator&nbsp;Handbook</a>
+  <nav><a href="index.html">Contents</a><a href="06-attacks.html">Next →</a></nav>
+</header>
+
+<main class="chapter">
+  <p class="kicker">Chapter 5</p>
+  <h1>Find the swarm &amp; read its mind</h1>
+  <p class="lede">The panels pick a channel at power-on, so first you have to find it. Then you watch
+  the swarm's own chatter stream past and learn to read, at a glance, what it is doing — which is
+  exactly the knowledge you need to attack it precisely.</p>
+
+  <h2><span class="num">5.1</span> Scan for the channel</h2>
+  <p>In SNIFF mode, run:</p>
+  <pre><code><span class="k">FIND</span>            <span class="c"># scan every channel, then lock onto the swarm's</span></code></pre>
+  <p>The board sweeps channels 1–13, counts how many <b>FLK1</b> (swarm) frames it hears on each,
+  then tunes to the busiest. On the OLED you'll see the scan, then the result:</p>
+
+  <div class="screen-row">
+    <figure>
+      <div class="screen"><img src="assets/screens/scan-running.svg" alt="OLED: SCANNING CH06 with a bar chart of per-channel activity"></div>
+      <figcaption><b>Scanning.</b> Each bar is a channel (1–13). The tall solid bars are swarm
+      (FLK1) traffic; the thin bars beside them are other 2.4&nbsp;GHz noise. The boxed number is
+      the channel being measured right now.</figcaption>
+    </figure>
+    <figure>
+      <div class="screen"><img src="assets/screens/scan-done.svg" alt="OLED: SWARM CH03 -58DB with channel 3 marked as the winner"></div>
+      <figcaption><b>Locked on.</b> Channel 3 has by far the most swarm traffic, so the board tunes
+      there. The header shows the chosen channel and its signal. You are now inside the net.</figcaption>
+    </figure>
+  </div>
+
+  <p>The same result comes over serial, so a script can read it too:</p>
+  <pre><code><span class="o">{</span><span class="s">"cmd"</span>:<span class="s">"scan"</span>,<span class="s">"done"</span>:true,<span class="s">"swarm_channel"</span>:3,<span class="s">"channel"</span>:3<span class="o">}</span></code></pre>
+  <div class="callout note"><p>Use <code>SCAN</code> instead of <code>FIND</code> to measure without
+  retuning, or <code>CH 3</code> to jump straight to a channel you already know. With ~25 radios in
+  the room the band is noisy — that's realistic; the swarm bars still stand out.</p></div>
+
+  <h2><span class="num">5.2</span> Watch the traffic</h2>
+  <p>Once locked on, make sure the stream is on:</p>
+  <pre><code><span class="k">VERBOSE</span>         <span class="c"># per-frame JSON on   (QUIET turns it off)</span></code></pre>
+  <p>Now the swarm's messages scroll past, one JSON object per line. The three kinds from
+  <a href="04-espnow.html">chapter&nbsp;4</a> look like this (trimmed for clarity):</p>
+  <pre><code><span class="o">{</span><span class="s">"kind"</span>:<span class="s">"TELEM"</span>,<span class="s">"label"</span>:<span class="s">"A1"</span>,<span class="s">"x"</span>:34,<span class="s">"y"</span>:-12,<span class="s">"heading"</span>:270,<span class="s">"active"</span>:true,<span class="s">"seq"</span>:4213<span class="o">}</span>
+<span class="o">{</span><span class="s">"kind"</span>:<span class="s">"CONTACT"</span>,<span class="s">"id"</span>:0,<span class="s">"x"</span>:120,<span class="s">"y"</span>:-40,<span class="s">"cls"</span>:<span class="s">"RED"</span>,<span class="s">"conf"</span>:200,<span class="s">"active"</span>:true,<span class="s">"seq"</span>:88<span class="o">}</span>
+<span class="o">{</span><span class="s">"kind"</span>:<span class="s">"CLAIM"</span>,<span class="s">"label"</span>:<span class="s">"B2"</span>,<span class="s">"contact"</span>:0,<span class="s">"role"</span>:<span class="s">"LEAD"</span>,<span class="s">"dist"</span>:55,<span class="s">"seq"</span>:12<span class="o">}</span></code></pre>
+
+  <h2><span class="num">5.3</span> Read the swarm's mind</h2>
+  <p>Put those three lines together and you can narrate exactly what the swarm is thinking:</p>
+  <div class="callout key">
+    <p><span class="h">Worked read.</span> Node <b>A1</b> is airborne at <code>(34, -12)</code> heading
+    west. There is a <b>RED</b> contact in slot&nbsp;0 at <code>(120, -40)</code> the swarm is fairly
+    sure about (confidence 200). <b>B2</b> has claimed <b>LEAD</b> on it at range 55 — so B2 is the
+    attacker; others will fall in as support. The swarm has found a target and is organising around
+    it.</p>
+  </div>
+  <p>Three questions answer almost everything, and you can read all three off the stream:</p>
+  <ul>
+    <li><b>Who is flying?</b> — the <code>TELEM</code> lines with <code>"active":true</code>.</li>
+    <li><b>Is there a target?</b> — any <code>CONTACT</code> with real confidence, and its class.</li>
+    <li><b>Who is LEAD?</b> — the <code>CLAIM</code> with <code>"role":"LEAD"</code> and the
+      shortest <code>dist</code>.</li>
+  </ul>
+  <p>For a running tally rather than the firehose, use <code>QUIET</code> then <code>STATS</code>:</p>
+  <pre><code><span class="k">STATS</span>
+<span class="o">{</span><span class="s">"cmd"</span>:<span class="s">"stats"</span>,<span class="s">"mode"</span>:<span class="s">"sniff"</span>,<span class="s">"flk1"</span>:18422,<span class="s">"flk2"</span>:291,<span class="s">"seen"</span>:12<span class="o">}</span></code></pre>
+  <p>Notice the <code>flk2</code> counter ticking up too: that is the swarm's authenticated command
+  traffic. You can <em>see</em> it, but as chapter 4 explained, you cannot forge it.</p>
+
+  <h2><span class="num">5.4</span> Grab bytes to reuse</h2>
+  <p>When you see a frame you'd like to replay later, capture its raw bytes:</p>
+  <pre><code><span class="k">RAW</span> 3           <span class="c"># dump the next 3 frames as raw hex</span></code></pre>
+  <p>Each dumped frame prints its hex, which you can hand straight to <code>SEND&nbsp;&lt;hex&gt;</code>
+  to retransmit it verbatim — the basis of the replay attack in the next chapter.</p>
+
+  <div class="callout note"><p><span class="h">Identify the panels.</span> Switch to the signal grid
+  (<code>PAGE 1</code>) and watch which cell is strongest as you move the board — that tells you
+  which physical panel is which <code>A1</code>–<code>D4</code>, so when you forge a contact "on
+  top of" a drone you know where to put it.</p></div>
+
+  <div class="pager">
+    <a class="prev" href="04-espnow.html"><span class="lbl">Prev</span><span class="ttl">← 4 · ESP-NOW &amp; how the swarm talks</span></a>
+    <a class="next" href="06-attacks.html"><span class="lbl">Next</span><span class="ttl">6 · Attack scenarios →</span></a>
+  </div>
+</main>
+</body>
+</html>
