@@ -26,6 +26,6 @@ HTML, SVG screen renders, and compiled PDF were added afterwards and re-scanned 
 ## A human must do before publishing
 1. Re-run a full secrets scan (e.g. `gitleaks`/`trufflehog`) on the repo.
 2. Confirm the prebuilt `firmware/prebuilt/*.bin` is the intended build.
-3. (Optional) add the ESP Web Tools browser-flasher page referenced in
-   `docs/flashing.md`.
+3. ~~Add the ESP Web Tools browser-flasher page.~~ **Done** — `docs/handbook/flasher/`
+   (ESP Web Tools vendored unmodified, Apache-2.0, see `NOTICE.md`).
 4. Decide the public remote and push (this repo has **no remote** configured).

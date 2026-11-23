@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser flasher — Flockinator Handbook</title>
+<meta name="description" content="Flash the ESP8266 from Chrome or Edge with ESP Web Tools — no toolchain, works offline on the lab network.">
+<link rel="stylesheet" href="../assets/handbook.css">
+<style>
+  .flashbar { display:flex; flex-wrap:wrap; align-items:center; gap:16px;
+    border:1px solid var(--line); border-radius:12px; background:var(--panel);
+    padding:20px; margin:22px 0; }
+  .btn-flash { font:inherit; font-weight:700; font-size:16px; cursor:pointer;
+    color:#fff; background:var(--teal); border:none; border-radius:8px;
+    padding:12px 22px; }
+  .btn-flash:hover { background:var(--teal-ink); }
+  esp-web-install-button { --esp-tools-button-color:#fff;
+    --esp-tools-button-text-color:#0e7490; }
+  .slot-msg { font-size:14px; color:var(--danger); }
+  .ready { font-size:14px; color:var(--muted); }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="../index.html"><span class="dot"></span>Flockinator&nbsp;Handbook</a>
+  <nav><a href="../index.html">Contents</a><a href="../02-flashing.html">← Flashing</a></nav>
+</header>
+
+<main>
+  <p class="kicker">Handbook · Browser flasher</p>
+  <h1>Flash from your browser</h1>
+  <p class="lede">No toolchain, no install — <b>ESP Web Tools</b> flashes the board straight from
+  Chrome or Edge over WebSerial, using the same prebuilt firmware as the command-line path. It
+  works entirely on the lab network; nothing is downloaded from the internet.</p>
+
+  <div class="callout warn">
+    <p><span class="h">Two requirements, or the button won't work:</span></p>
+    <ul>
+      <li>A <b>desktop Chrome or Edge</b> browser (WebSerial isn't in Firefox or Safari, or on mobile).</li>
+      <li>This page must be opened over <b><code>http://localhost</code></b> or <code>https</code> —
+        <b>not</b> as a <code>file://</code> path. Browsers only allow WebSerial in a secure context.</li>
+    </ul>
+  </div>
+
+  <h2>Serve it, then open it</h2>
+  <p>From a terminal, in the <b>root of this repo</b>, start a tiny local web server and open the
+  page it serves:</p>
+  <pre><code><span class="c"># in the repository root (the folder that contains firmware/ and docs/)</span>
+<span class="k">python3</span> -m http.server 8000
+
+<span class="c"># then open this in Chrome or Edge:</span>
+<span class="o">http://localhost:8000/docs/handbook/flasher/</span></code></pre>
+  <p class="caption">Serving from the repo root lets the flasher reach the firmware in
+  <code>firmware/prebuilt/</code>. <code>localhost</code> counts as a secure context, so WebSerial
+  is allowed.</p>
+
+  <h2>Flash</h2>
+  <div class="flashbar">
+    <esp-web-install-button manifest="manifest.json">
+      <button slot="activate" class="btn-flash">⚡ Flash my ESP8266</button>
+      <span slot="unsupported" class="slot-msg">This browser can't flash — use desktop Chrome or Edge.</span>
+      <span slot="not-allowed" class="slot-msg">Open this page over http://localhost or https (not a file:// path).</span>
+    </esp-web-install-button>
+    <span class="ready">Board plugged into a <b>USB-A</b> port? Then click, and pick its serial port when prompted.</span>
+  </div>
+
+  <ol>
+    <li>Plug the board into a <b>USB-A</b> port (see <a href="../02-flashing.html">chapter&nbsp;2</a> for the power trap).</li>
+    <li>Click <b>Flash my ESP8266</b>.</li>
+    <li>In the browser's port chooser, pick the board's serial port (often labelled <em>CH340</em> or <em>USB-SERIAL</em>), and allow access.</li>
+    <li>Let it erase and write — it takes a minute. When it reports success, the board reboots into the tool.</li>
+    <li>Close the dialog and open a serial monitor at <b>115200 baud</b> (<code>picocom -b 115200 /dev/ttyUSB0</code>) to continue with <a href="../05-scanning.html">chapter&nbsp;5</a>.</li>
+  </ol>
+
+  <div class="callout note">
+    <p><span class="h">Nothing to pick in the port chooser?</span> It's almost always the cable or
+    port, not the browser — a <b>USB-A</b> port and a real data cable (not charge-only). Same
+    checklist as <a href="../02-flashing.html">chapter&nbsp;2</a>.</p>
+  </div>
+
+  <div class="callout key">
+    <p><span class="h">Prefer the command line?</span> The browser flasher writes the exact same
+    binary as <code>esptool</code> — if WebSerial gives you trouble, fall back to
+    <a href="../02-flashing.html">chapter&nbsp;2, Path A</a>.</p>
+  </div>
+
+  <p class="fine">Browser flashing is powered by <a href="esp-web-tools/LICENSE">ESP Web Tools</a>
+  (Apache-2.0), vendored into this repo so it runs offline.</p>
+
+  <div class="pager">
+    <a class="prev" href="../02-flashing.html"><span class="lbl">Back</span><span class="ttl">← 2 · Flash the board &amp; first boot</span></a>
+    <a class="next" href="../05-scanning.html"><span class="lbl">Next</span><span class="ttl">5 · Find the swarm →</span></a>
+  </div>
+</main>
+
+<script type="module" src="esp-web-tools/install-button.js"></script>
+</body>
+</html>

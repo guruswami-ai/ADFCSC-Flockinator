@@ -89,9 +89,12 @@
   itself. Building from source produces the <em>same</em> tool as the prebuilt binary.</p>
 
   <h3>Path C — browser flasher (no install)</h3>
-  <p>If the facilitator has set up the ESP Web Tools page, open it in <b>Chrome</b> or
-  <b>Edge</b>, choose the serial port, and flash the prebuilt <code>.bin</code> — handy for a
-  laptop where you cannot install anything.</p>
+  <p>Flash straight from <b>Chrome</b> or <b>Edge</b> with the built-in
+  <a href="flasher/index.html">browser flasher</a> — no toolchain at all, and it runs offline. One
+  catch: WebSerial only works over <code>localhost</code> (not a <code>file://</code> page), so in
+  the repo root run <code>python3 -m http.server 8000</code>, then open
+  <code>http://localhost:8000/docs/handbook/flasher/</code> and click <b>Flash my ESP8266</b>. Full
+  steps are on the <a href="flasher/index.html">flasher page</a>.</p>
 
   <h2><span class="num">2.4</span> First boot</h2>
   <p>Open a serial monitor on the board at <b>115200 baud</b>:</p>
